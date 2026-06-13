@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-slate-700;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-slate-950 text-white;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    @apply opacity-100;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900/50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-cyan-900/30 hover:shadow-cyan-700/40 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-all duration-200 active:scale-95;
+  }
+
+  .btn-danger {
+    @apply bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-40 active:scale-95;
+  }
+
+  .card {
+    @apply bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 border border-slate-700/60 shadow-xl;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-slate-600 hover:shadow-2xl hover:-translate-y-0.5;
+  }
+
+  .input {
+    @apply w-full bg-slate-900/80 border border-slate-600/60 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all duration-200;
+  }
+
+  .search-input {
+    @apply w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-2.5 pl-10 text-white placeholder-slate-500 focus:border-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/15 transition-all duration-200 text-sm;
+  }
+
+  /* Stock status badges */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-ok {
+    @apply badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/20;
+  }
+
+  .badge-low {
+    @apply badge bg-amber-500/15 text-amber-400 border border-amber-500/20;
+  }
+
+  .badge-critical {
+    @apply badge bg-rose-500/15 text-rose-400 border border-rose-500/20;
+  }
+
+  /* Alert rows highlight */
+  .row-low-stock {
+    @apply bg-amber-500/5 border-l-2 border-amber-500/40;
+  }
+
+  .row-no-stock {
+    @apply bg-rose-500/5 border-l-2 border-rose-500/40;
+  }
+
+  /* Glassmorphism panel */
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl;
+  }
+
+  /* Sale summary panel */
+  .sale-summary {
+    @apply bg-gradient-to-br from-slate-900/80 to-slate-800/50 border border-slate-700/60 rounded-xl p-4 space-y-2;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm;
+  }
+
+  .nav-item-active {
+    @apply nav-item bg-gradient-to-r from-cyan-600/25 to-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-900/20;
+  }
+
+  .nav-item-inactive {
+    @apply nav-item text-slate-400 hover:bg-slate-800/60 hover:text-slate-200;
+  }
+
+  /* Alert notification badge */
+  .alert-dot {
+    @apply w-5 h-5 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center font-bold ml-auto shadow-lg shadow-rose-900/50;
+  }
+
+  /* Section header */
+  .section-header {
+    @apply flex items-center justify-between mb-6;
+  }
+
+  .section-title {
+    @apply flex items-center gap-2.5 text-lg font-semibold text-white;
+  }
+}
+
+@layer utilities {
+  /* Fade in */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Slide up */
+  .animate-slide-up {
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)  scale(1); }
+  }
+
+  /* Pulse glow for critical alert */
+  .animate-pulse-glow-red {
+    animation: pulseGlowRed 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlowRed {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.12); }
+  }
+
+  .animate-pulse-glow-amber {
+    animation: pulseGlowAmber 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlowAmber {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    50%       { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.10); }
+  }
+
+  /* Success flash */
+  .animate-success {
+    animation: successPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes successPop {
+    0%   { transform: scale(0.8); opacity: 0; }
+    60%  { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Shimmer loading */
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    from { background-position: 200% center; }
+    to   { background-position: -200% center; }
+  }
+}
