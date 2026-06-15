@@ -16,10 +16,12 @@ interface DashboardProps {
   balance: number;
   /** Verdadero mientras se carga el saldo desde Supabase por primera vez. */
   balanceLoading: boolean;
+  /** Mensaje de error de Supabase, o null si no hay error. */
+  balanceError: string | null;
   adjustBalance: (delta: number) => Promise<boolean>;
 }
 
-export function Dashboard({ stats, config, commissioners, groupedProducts, balance, balanceLoading, adjustBalance }: DashboardProps) {
+export function Dashboard({ stats, config, commissioners, groupedProducts, balance, balanceLoading, balanceError, adjustBalance }: DashboardProps) {
   /* ── Selector de comisionista para el peor caso ── */
   const [worstCaseCommId, setWorstCaseCommId] = useState<string>(commissioners[0]?.id ?? "");
 
@@ -256,7 +258,7 @@ export function Dashboard({ stats, config, commissioners, groupedProducts, balan
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-teal-400 uppercase tracking-wide">Dinero en Cuenta Actual</p>
-                  <p className="text-xs text-slate-500">Se actualiza automaticamente con cada venta</p>
+                  <p className="text-xs text-slate-500">Se actualiza automáticamente con cada venta</p>
                 </div>
               </div>
 
@@ -279,7 +281,23 @@ export function Dashboard({ stats, config, commissioners, groupedProducts, balan
             )}
           </div>
 
-          {/* Formulario inline de ajuste */}
+          {/* Error de Supabase */}
+          {balanceError && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-rose-400">Error al guardar en Supabase</p>
+                <p className="text-xs text-rose-400/70 mt-0.5 font-mono">{balanceError}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Verificá que la migración <span className="text-slate-400 font-mono">002_add_dinero_cuenta.sql</span> esté aplicada en tu proyecto de Supabase.
+                </p>
+              </div>
+            </div>
+          )}
+
+
+
+
           {showAdjust && (
             <div className="relative mt-4 pt-4 border-t border-teal-500/20 animate-fade-in">
               <p className="text-xs text-slate-400 mb-3 font-medium">Registrar movimiento manual:</p>

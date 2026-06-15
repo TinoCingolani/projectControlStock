@@ -21,7 +21,7 @@ function App() {
   const { products, groupedProducts, addProduct, updateProduct, deleteProduct, loading: productsLoading } = useProducts(config);
   const { sales, addSale: addSaleRaw, deleteSale, loading: salesLoading }            = useSales();
   const stats = useDashboardStats(groupedProducts, sales, config);
-  const { balance, loading: balanceLoading, addToBalance, adjustBalance }           = useBalance();
+  const { balance, loading: balanceLoading, error: balanceError, addToBalance, adjustBalance } = useBalance();
 
   /* Envuelve addSale para acreditar el monto al saldo cuando la venta se confirma */
   const addSale: typeof addSaleRaw = async (sale) => {
@@ -55,6 +55,7 @@ function App() {
             groupedProducts={groupedProducts}
             balance={balance}
             balanceLoading={balanceLoading}
+            balanceError={balanceError}
             adjustBalance={adjustBalance}
           />
         );
@@ -110,6 +111,7 @@ function App() {
             groupedProducts={groupedProducts}
             balance={balance}
             balanceLoading={balanceLoading}
+            balanceError={balanceError}
             adjustBalance={adjustBalance}
           />
         );
