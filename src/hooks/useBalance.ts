@@ -1,45 +1,114 @@
-﻿import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
 
-const STORAGE_KEY  = "cuenta_saldo_v1";
-const INIT_BALANCE = 13_000;
+const CONFIG_ROW_ID  = 1;
+const INIT_BALANCE   = 13_000;
+
+interface UseBalanceReturn {
+  balance: number;
+  loading: boolean;
+  /** Suma un monto al saldo (llamado al confirmar una venta). */
+  addToBalance: (amount: number) => Promise<boolean>;
+  /** Ajusta el saldo por un delta firmado (positivo = ingreso, negativo = gasto). */
+  adjustBalance: (delta: number) => Promise<boolean>;
+  /** Sobreescribe el saldo con un valor exacto. */
+  setBalance: (value: number) => Promise<boolean>;
+}
 
 /**
- * Persists the current cash balance in localStorage.
- * Initializes at $13.000 if no stored value exists.
+ * Persiste el saldo de "Dinero en Cuenta Actual" en Supabase (tabla config, fila id=1).
+ * Inicializa en $13.000 si no existe el valor.
  */
-export function useBalance() {
-  const [balance, setBalanceState] = useState<number>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored !== null ? parseFloat(stored) : INIT_BALANCE;
-  });
+export function useBalance(): UseBalanceReturn {
+  const [balance, setBalanceState] = useState<number>(INIT_BALANCE);
+  const [loading, setLoading]      = useState<boolean>(true);
 
-  const persist = (value: number) => {
-    localStorage.setItem(STORAGE_KEY, value.toString());
-  };
+  // ─── Carga inicial desde Supabase ────────────────────────────────────────
+  const fetchBalance = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("config")
+      .select("dinero_cuenta")
+      .eq("id", CONFIG_ROW_ID)
+      .single();
 
-  /** Adds an amount to the balance (called on sale confirmation). */
-  const addToBalance = useCallback((amount: number) => {
-    setBalanceState(prev => {
-      const next = prev + amount;
-      persist(next);
-      return next;
-    });
+    if (error) {
+      console.error("[useBalance] Error al cargar saldo:", error.message);
+    } else if (data?.dinero_cuenta != null) {
+      setBalanceState(Number(data.dinero_cuenta));
+    }
+
+    setLoading(false);
   }, []);
 
-  /** Adjusts the balance by a signed delta (positive = income, negative = expense). */
-  const adjustBalance = useCallback((delta: number) => {
-    setBalanceState(prev => {
-      const next = prev + delta;
-      persist(next);
-      return next;
-    });
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
+
+  // ─── Persistencia central ─────────────────────────────────────────────────
+  /**
+   * Escribe el nuevo saldo en Supabase y actualiza el estado local.
+   * Devuelve `true` si tuvo éxito.
+   */
+  const persist = useCallback(async (newValue: number): Promise<boolean> => {
+    const { error } = await supabase
+      .from("config")
+      .update({ dinero_cuenta: newValue })
+      .eq("id", CONFIG_ROW_ID);
+
+    if (error) {
+      console.error("[useBalance] Error al guardar saldo:", error.message);
+      return false;
+    }
+
+    setBalanceState(newValue);
+    return true;
   }, []);
 
-  /** Overwrites the balance with a specific value. */
-  const setBalance = useCallback((value: number) => {
-    persist(value);
-    setBalanceState(value);
-  }, []);
+  // ─── API pública ──────────────────────────────────────────────────────────
+  const addToBalance = useCallback(
+    async (amount: number): Promise<boolean> => {
+      // Leemos el valor más reciente antes de sumar para evitar race conditions
+      const { data, error } = await supabase
+        .from("config")
+        .select("dinero_cuenta")
+        .eq("id", CONFIG_ROW_ID)
+        .single();
 
-  return { balance, addToBalance, adjustBalance, setBalance };
+      if (error || data?.dinero_cuenta == null) {
+        console.error("[useBalance] Error al releer saldo antes de sumar:", error?.message);
+        return false;
+      }
+
+      const next = Number(data.dinero_cuenta) + amount;
+      return persist(next);
+    },
+    [persist],
+  );
+
+  const adjustBalance = useCallback(
+    async (delta: number): Promise<boolean> => {
+      const { data, error } = await supabase
+        .from("config")
+        .select("dinero_cuenta")
+        .eq("id", CONFIG_ROW_ID)
+        .single();
+
+      if (error || data?.dinero_cuenta == null) {
+        console.error("[useBalance] Error al releer saldo antes de ajustar:", error?.message);
+        return false;
+      }
+
+      const next = Number(data.dinero_cuenta) + delta;
+      return persist(next);
+    },
+    [persist],
+  );
+
+  const setBalance = useCallback(
+    async (value: number): Promise<boolean> => persist(value),
+    [persist],
+  );
+
+  return { balance, loading, addToBalance, adjustBalance, setBalance };
 }

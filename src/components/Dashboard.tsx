@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   DollarSign, TrendingUp, Package, AlertTriangle, ShoppingCart,
   Users, PieChart as PieChartIcon, TrendingDown, Wallet, BarChart3,
@@ -14,10 +14,12 @@ interface DashboardProps {
   commissioners: Commissioner[];
   groupedProducts: ProductWithCalculated[];
   balance: number;
-  adjustBalance: (delta: number) => void;
+  /** Verdadero mientras se carga el saldo desde Supabase por primera vez. */
+  balanceLoading: boolean;
+  adjustBalance: (delta: number) => Promise<boolean>;
 }
 
-export function Dashboard({ stats, config, commissioners, groupedProducts, balance, adjustBalance }: DashboardProps) {
+export function Dashboard({ stats, config, commissioners, groupedProducts, balance, balanceLoading, adjustBalance }: DashboardProps) {
   /* ── Selector de comisionista para el peor caso ── */
   const [worstCaseCommId, setWorstCaseCommId] = useState<string>(commissioners[0]?.id ?? "");
 
@@ -38,10 +40,15 @@ export function Dashboard({ stats, config, commissioners, groupedProducts, balan
   const [adjustType, setAdjustType]   = useState<"gasto" | "ingreso">("gasto");
   const [adjustDesc, setAdjustDesc]   = useState("");
 
-  const handleAdjust = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleAdjust = async () => {
     const amt = parseFloat(adjustAmt);
     if (!amt || isNaN(amt) || amt <= 0) return;
-    adjustBalance(adjustType === "gasto" ? -amt : amt);
+    setIsSaving(true);
+    const ok = await adjustBalance(adjustType === "gasto" ? -amt : amt);
+    setIsSaving(false);
+    if (!ok) return; // el error ya se loguea en el hook
     setAdjustAmt("");
     setAdjustDesc("");
     setShowAdjust(false);
@@ -253,8 +260,10 @@ export function Dashboard({ stats, config, commissioners, groupedProducts, balan
                 </div>
               </div>
 
-              <p className={`text-4xl font-bold tabular-nums tracking-tight ${balance >= 0 ? "text-teal-300" : "text-rose-400"}`}>
-                {formatCurrency(balance)}
+              <p className={`text-4xl font-bold tabular-nums tracking-tight transition-opacity duration-300 ${
+                balanceLoading ? "opacity-30 animate-pulse" : ""
+              } ${balance >= 0 ? "text-teal-300" : "text-rose-400"}`}>
+                {balanceLoading ? "Cargando..." : formatCurrency(balance)}
               </p>
             </div>
 
@@ -349,14 +358,18 @@ export function Dashboard({ stats, config, commissioners, groupedProducts, balan
                 </button>
                 <button
                   onClick={handleAdjust}
-                  disabled={!adjustAmt || parseFloat(adjustAmt) <= 0}
+                  disabled={!adjustAmt || parseFloat(adjustAmt) <= 0 || isSaving}
                   className={`flex items-center gap-1 flex-1 justify-center py-2 rounded-lg text-xs font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
                     adjustType === "gasto"
                       ? "bg-rose-600 hover:bg-rose-500 text-white"
                       : "bg-teal-600 hover:bg-teal-500 text-white"
                   }`}
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  {isSaving ? (
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
                   {adjustType === "gasto" ? "Registrar Gasto" : "Agregar Ingreso"}
                 </button>
               </div>

@@ -21,12 +21,12 @@ function App() {
   const { products, groupedProducts, addProduct, updateProduct, deleteProduct, loading: productsLoading } = useProducts(config);
   const { sales, addSale: addSaleRaw, deleteSale, loading: salesLoading }            = useSales();
   const stats = useDashboardStats(groupedProducts, sales, config);
-  const { balance, addToBalance, adjustBalance }                                     = useBalance();
+  const { balance, loading: balanceLoading, addToBalance, adjustBalance }           = useBalance();
 
   /* Envuelve addSale para acreditar el monto al saldo cuando la venta se confirma */
   const addSale: typeof addSaleRaw = async (sale) => {
     const ok = await addSaleRaw(sale);
-    if (ok) addToBalance(sale.sale_price);
+    if (ok) await addToBalance(sale.sale_price);
     return ok;
   };
 
@@ -54,6 +54,7 @@ function App() {
             commissioners={commissioners}
             groupedProducts={groupedProducts}
             balance={balance}
+            balanceLoading={balanceLoading}
             adjustBalance={adjustBalance}
           />
         );
@@ -108,6 +109,7 @@ function App() {
             commissioners={commissioners}
             groupedProducts={groupedProducts}
             balance={balance}
+            balanceLoading={balanceLoading}
             adjustBalance={adjustBalance}
           />
         );

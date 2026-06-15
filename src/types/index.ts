@@ -3,6 +3,7 @@ export interface Config {
   dolar_ars: number;
   margen_minimo: number;
   alerta_stock_bajo: number;
+  dinero_cuenta: number;
   updated_at: string;
 }
 
