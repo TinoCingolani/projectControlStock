@@ -486,31 +486,31 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
                         }`}
                       >
                         <ShoppingBag className="w-4 h-4" />
-                        Comisionista
+                        Vendedor
                       </button>
                     </div>
                   </div>
 
-                  {/* Comisionista + % editable */}
+                  {/* Vendedor + % editable */}
                   {saleType === 'commissioner' && (
                     <div className="animate-fade-in space-y-3">
-                      {/* Selector de comisionista */}
+                      {/* Selector de vendedor */}
                       <div>
                         <label className="block text-xs text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
-                          Comisionista
+                          Vendedor
                         </label>
                         <select
                           value={selectedCommissioner}
                           onChange={e => {
                             const commId = e.target.value;
                             setSelectedCommissioner(commId);
-                            // Pre-llenar con la tasa base del comisionista seleccionado
+                            // Pre-llenar con la tasa base del vendedor seleccionado
                             const comm = commissioners.find(c => c.id === commId);
                             setCustomCommPct(comm ? comm.commission_percent.toString() : '');
                           }}
                           className="input"
                         >
-                          <option value="">Seleccionar comisionista...</option>
+                          <option value="">Seleccionar vendedor...</option>
                           {commissioners.map(c => (
                             <option key={c.id} value={c.id}>
                               {c.name} ({c.commission_percent}% base)

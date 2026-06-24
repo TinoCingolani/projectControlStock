@@ -39,7 +39,7 @@ export function CommissionerPanel({ commissioners, addCommissioner, updateCommis
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar este comisionista?')) return;
+    if (!confirm('¿Eliminar este vendedor?')) return;
     await deleteCommissioner(id);
   };
 
@@ -55,7 +55,7 @@ export function CommissionerPanel({ commissioners, addCommissioner, updateCommis
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Users className="w-5 h-5 text-violet-400" />
-          <h2 className="text-lg font-semibold text-white">Comisionistas</h2>
+          <h2 className="text-lg font-semibold text-white">Vendedores</h2>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -69,7 +69,7 @@ export function CommissionerPanel({ commissioners, addCommissioner, updateCommis
       {commissioners.length === 0 ? (
         <div className="text-center py-8 text-slate-500">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>No hay comisionistas registrados</p>
+          <p>No hay vendedores registrados</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -106,7 +106,7 @@ export function CommissionerPanel({ commissioners, addCommissioner, updateCommis
           <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">
-                {editingCommissioner ? 'Editar Comisionista' : 'Nuevo Comisionista'}
+                {editingCommissioner ? 'Editar Vendedor' : 'Nuevo Vendedor'}
               </h3>
               <button onClick={closeModal} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -121,7 +121,7 @@ export function CommissionerPanel({ commissioners, addCommissioner, updateCommis
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-violet-500 focus:outline-none"
-                  placeholder="Nombre del comisionista"
+                  placeholder="Nombre del vendedor"
                 />
               </div>
               <div>

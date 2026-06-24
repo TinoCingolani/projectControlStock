@@ -17,12 +17,12 @@ Una plataforma web moderna e interactiva diseñada para la **gestión integral d
   - Carga de productos detallando costos en dólares (USD) y precios de venta en pesos (ARS).
   - Cálculo automático de costos en ARS según la tasa de cotización del dólar configurada.
   - Alertas visuales de stock bajo y margen de ganancia insuficiente.
-- **🤝 Gestión de Comisionistas**:
-  - Registro de comisionistas colaboradores con sus respectivos porcentajes de comisión personalizados.
-  - Asignación de ventas a comisionistas con cálculo automático del monto de comisión y la ganancia neta.
+- **🤝 Gestión de Vendedores**:
+  - Registro de vendedores colaboradores con sus respectivos porcentajes de comisión personalizados.
+  - Asignación de ventas a vendedores con cálculo automático del monto de comisión y la ganancia neta.
 - **📈 Proyecciones Financieras**:
   - Panel interactivo para simular el rendimiento del stock disponible.
-  - Estimaciones del mejor escenario (ventas 100% directas) frente al peor escenario (ventas 100% a través de un comisionista seleccionado).
+  - Estimaciones del mejor escenario (ventas 100% directas) frente al peor escenario (ventas 100% a través de un vendedor seleccionado).
 - **📝 Historial de Ventas Auditable**: Registro ordenado de transacciones con la opción de anular ventas (lo cual reintegra automáticamente el stock del producto).
 - **⚙️ Configuración Personalizada**: Modificación en tiempo real del tipo de cambio USD/ARS, el margen mínimo de ganancia esperado y el umbral para las alertas de stock.
 
@@ -75,9 +75,9 @@ Almacena la configuración global de la aplicación (único registro con `id = 1
 - `alerta_stock_bajo`: `INTEGER` (Cantidad mínima para disparar la alerta de stock, Default: 3)
 
 ### 2. Tabla `commissioners`
-Almacena los datos de los vendedores comisionistas.
+Almacena los datos de los vendedores.
 - `id`: `UUID` (Primary Key, Default: gen_random_uuid())
-- `name`: `TEXT` (Nombre del comisionista)
+- `name`: `TEXT` (Nombre del vendedor)
 - `commission_percent`: `DECIMAL(5,2)` (Porcentaje de comisión acordado)
 
 ### 3. Tabla `products`

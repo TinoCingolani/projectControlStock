@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { LayoutDashboard, Settings, ShoppingCart, Package, Users, History, Menu, X, AlertTriangle, Zap } from 'lucide-react';
+import {
+  LayoutDashboard, Settings, ShoppingCart, Package, Users, History,
+  Menu, X, AlertTriangle, Zap,
+} from 'lucide-react';
 import { useConfig, useCommissioners, useProducts, useSales, useDashboardStats } from './hooks/useData';
 import { useBalance } from './hooks/useBalance';
-import { Dashboard } from './components/Dashboard';
-import { ConfigPanel } from './components/ConfigPanel';
-import { CommissionerPanel } from './components/CommissionerPanel';
-import { ProductsPanel } from './components/ProductsPanel';
-import { SalesPanel } from './components/SalesPanel';
-import { SalesHistory } from './components/SalesHistory';
-import { isLowStock } from './utils/calculations';
+import { Dashboard }          from './components/Dashboard';
+import { ConfigPanel }        from './components/ConfigPanel';
+import { CommissionerPanel }  from './components/CommissionerPanel';
+import { ProductsPanel }      from './components/ProductsPanel';
+import { SalesPanel }         from './components/SalesPanel';
+import { SalesHistory }       from './components/SalesHistory';
+import { isLowStock }         from './utils/calculations';
 
 type Tab = 'dashboard' | 'config' | 'orders' | 'stock' | 'commissioners' | 'history';
 
@@ -18,8 +21,11 @@ function App() {
 
   const { config, updateConfig }                                                     = useConfig();
   const { commissioners, addCommissioner, updateCommissioner, deleteCommissioner }   = useCommissioners();
-  const { products, groupedProducts, addProduct, updateProduct, deleteProduct, loading: productsLoading } = useProducts(config);
-  const { sales, addSale: addSaleRaw, deleteSale, loading: salesLoading }            = useSales();
+  const {
+    products, groupedProducts, addProduct, updateProduct, deleteProduct,
+    loading: productsLoading,
+  } = useProducts(config);
+  const { sales, addSale: addSaleRaw, deleteSale, loading: salesLoading } = useSales();
   const stats = useDashboardStats(groupedProducts, sales, config);
   const { balance, loading: balanceLoading, error: balanceError, addToBalance, adjustBalance } = useBalance();
 
@@ -36,12 +42,12 @@ function App() {
     : 0;
 
   const tabs = [
-    { id: 'dashboard'    as Tab, label: 'Dashboard',       icon: LayoutDashboard },
-    { id: 'orders'       as Tab, label: 'Pedidos',         icon: ShoppingCart },
-    { id: 'stock'        as Tab, label: 'Stock y Ventas',  icon: Package,  alert: stockAlertCount },
-    { id: 'commissioners'as Tab, label: 'Comisionistas',   icon: Users },
-    { id: 'history'      as Tab, label: 'Historial',       icon: History },
-    { id: 'config'       as Tab, label: 'Configuración',   icon: Settings },
+    { id: 'dashboard'     as Tab, label: 'Dashboard',      icon: LayoutDashboard },
+    { id: 'orders'        as Tab, label: 'Pedidos',        icon: ShoppingCart },
+    { id: 'stock'         as Tab, label: 'Stock y Ventas', icon: Package, alert: stockAlertCount },
+    { id: 'commissioners' as Tab, label: 'Vendedores',  icon: Users },
+    { id: 'history'       as Tab, label: 'Historial',      icon: History },
+    { id: 'config'        as Tab, label: 'Configuración',  icon: Settings },
   ];
 
   const renderContent = () => {
@@ -124,27 +130,41 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen">
 
       {/* ── Mobile header ── */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/60 z-40">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-900/50">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40
+                      bg-[#03060f]/80 backdrop-blur-[48px]
+                      border-b border-white/8">
+        <div className="flex items-center justify-between px-4 py-3.5">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl
+                            bg-gradient-to-br from-cyan-400 to-cyan-600
+                            flex items-center justify-center
+                            shadow-[0_0_16px_rgba(6,182,212,0.5)]">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-base font-bold text-white">Vapers &amp; Electrónica</h1>
+            <h1 className="text-sm font-bold text-white tracking-tight">
+              Vapers &amp; Electrónica
+            </h1>
           </div>
+
           <div className="flex items-center gap-2">
             {stockAlertCount > 0 && (
-              <div className="flex items-center gap-1 bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1
+                              bg-amber-500/15 border border-amber-400/30
+                              text-amber-300 text-xs font-bold
+                              px-2.5 py-1 rounded-full
+                              backdrop-blur-sm">
                 <AlertTriangle className="w-3 h-3" />
                 {stockAlertCount}
               </div>
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 text-white/50 hover:text-white
+                         hover:bg-white/8 rounded-xl transition-all duration-200"
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -154,19 +174,28 @@ function App() {
 
       {/* ── Sidebar ── */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-slate-900/98 backdrop-blur-xl border-r border-slate-700/60 transition-transform duration-300 ease-out lg:translate-x-0 flex flex-col ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 z-50 h-full w-64 flex flex-col
+                    glass-sidebar transition-transform duration-300 ease-out
+                    lg:translate-x-0
+                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Logo */}
-        <div className="p-5 border-b border-slate-700/60">
+        <div className="p-5 border-b border-white/8">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg shadow-cyan-900/50">
+            <div className="w-10 h-10 rounded-2xl
+                            bg-gradient-to-br from-cyan-400 to-cyan-600
+                            flex items-center justify-center
+                            shadow-[0_0_24px_rgba(6,182,212,0.45)]
+                            animate-glow-pulse">
               <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white leading-tight">Vapers &amp; Electrónica</h1>
-              <p className="text-xs text-slate-500">Gestión de Marketplace</p>
+              <h1 className="text-sm font-bold text-white leading-tight tracking-tight">
+                Vapers &amp; Electrónica
+              </h1>
+              <p className="text-xs text-white/35 font-medium mt-0.5">
+                Gestión de Marketplace
+              </p>
             </div>
           </div>
         </div>
@@ -192,29 +221,36 @@ function App() {
         </nav>
 
         {/* Quick stats */}
-        <div className="p-4 border-t border-slate-700/60">
-          <p className="text-xs text-slate-600 font-medium uppercase tracking-wider mb-3">Resumen rápido</p>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center py-1">
-              <span className="text-xs text-slate-500">Dólar ARS</span>
-              <span className="text-xs text-cyan-400 font-semibold bg-cyan-500/10 px-2 py-0.5 rounded-full">
+        <div className="p-4 border-t border-white/8">
+          <p className="text-[10px] text-white/25 font-semibold uppercase tracking-[0.15em] mb-3">
+            Resumen rápido
+          </p>
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center px-3 py-2 rounded-xl
+                            bg-white/4 border border-white/8">
+              <span className="text-xs text-white/45">Dólar ARS</span>
+              <span className="text-xs text-cyan-400 font-bold tabular-nums">
                 ${config?.dolar_ars.toLocaleString('es-AR') || '—'}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1">
-              <span className="text-xs text-slate-500">Productos</span>
-              <span className="text-xs text-white font-semibold">{groupedProducts.length}</span>
+            <div className="flex justify-between items-center px-3 py-2 rounded-xl
+                            bg-white/4 border border-white/8">
+              <span className="text-xs text-white/45">Productos</span>
+              <span className="text-xs text-white font-bold">{groupedProducts.length}</span>
             </div>
-            <div className="flex justify-between items-center py-1">
-              <span className="text-xs text-slate-500">Ventas</span>
-              <span className="text-xs text-white font-semibold">{sales.length}</span>
+            <div className="flex justify-between items-center px-3 py-2 rounded-xl
+                            bg-white/4 border border-white/8">
+              <span className="text-xs text-white/45">Ventas</span>
+              <span className="text-xs text-white font-bold">{sales.length}</span>
             </div>
             {stockAlertCount > 0 && (
-              <div className="flex justify-between items-center py-1">
-                <span className="text-xs text-amber-500/80 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Alertas
+              <div className="flex justify-between items-center px-3 py-2 rounded-xl
+                              bg-amber-500/10 border border-amber-400/20">
+                <span className="text-xs text-amber-300/80 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3" />
+                  Alertas
                 </span>
-                <span className="text-xs text-amber-400 font-semibold">{stockAlertCount}</span>
+                <span className="text-xs text-amber-300 font-bold">{stockAlertCount}</span>
               </div>
             )}
           </div>
@@ -224,46 +260,54 @@ function App() {
       {/* Overlay móvil */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-md"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* ── Main content ── */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
-        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+        <div className="p-4 lg:p-7 max-w-7xl mx-auto">
 
           {/* Page header */}
-          <header className="mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <header className="mb-7">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  {stockAlertCount > 0 && activeTab === 'stock' && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium">
-                      <AlertTriangle className="w-3 h-3" />
-                      {stockAlertCount} alerta{stockAlertCount > 1 ? 's' : ''} de stock
-                    </span>
-                  )}
-                </div>
-                <h2 className="text-2xl font-bold text-white">
+                {stockAlertCount > 0 && activeTab === 'stock' && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-amber-300
+                                   bg-amber-500/12 border border-amber-400/25
+                                   px-3 py-1 rounded-full font-medium backdrop-blur-sm mb-2">
+                    <AlertTriangle className="w-3 h-3" />
+                    {stockAlertCount} alerta{stockAlertCount > 1 ? 's' : ''} de stock
+                  </span>
+                )}
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">
                   {tabs.find(t => t.id === activeTab)?.label}
                 </h2>
-                <p className="text-slate-500 text-sm mt-0.5">
+                <p className="text-white/35 text-sm mt-1 font-medium">
                   Gestión completa de tu negocio de Marketplace
                 </p>
               </div>
 
-              {/* Profit chips */}
+              {/* Profit chips — glass premium */}
               <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-emerald-900/60 to-emerald-950/80 border border-emerald-700/30 rounded-xl px-4 py-2.5 shadow-lg shadow-emerald-950/50 hover:border-emerald-600/50 transition-all duration-200">
-                  <p className="text-xs text-emerald-600 font-medium">Gcia. Realizada</p>
-                  <p className="text-base font-bold text-emerald-400 tabular-nums">
+                <div className="glass-card px-4 py-3 hover:border-emerald-400/25
+                                hover:shadow-[0_8px_32px_rgba(52,211,153,0.15),inset_0_1px_0_rgba(255,255,255,0.08)]
+                                transition-all duration-300 rounded-2xl">
+                  <p className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-[0.12em]">
+                    Gcia. Realizada
+                  </p>
+                  <p className="text-base font-bold text-emerald-400 tabular-nums leading-tight">
                     ${stats.totalRealizedProfit.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-cyan-900/60 to-cyan-950/80 border border-cyan-700/30 rounded-xl px-4 py-2.5 shadow-lg shadow-cyan-950/50 hover:border-cyan-600/50 transition-all duration-200">
-                  <p className="text-xs text-cyan-600 font-medium">Gcia. Potencial</p>
-                  <p className="text-base font-bold text-cyan-400 tabular-nums">
+                <div className="glass-card px-4 py-3 hover:border-cyan-400/25
+                                hover:shadow-[0_8px_32px_rgba(6,182,212,0.15),inset_0_1px_0_rgba(255,255,255,0.08)]
+                                transition-all duration-300 rounded-2xl">
+                  <p className="text-[10px] text-cyan-400/70 font-semibold uppercase tracking-[0.12em]">
+                    Gcia. Potencial
+                  </p>
+                  <p className="text-base font-bold text-cyan-400 tabular-nums leading-tight">
                     ${stats.totalPotentialProfit.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
                 </div>
@@ -273,12 +317,17 @@ function App() {
 
           {/* Content */}
           {productsLoading || salesLoading ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 rounded-full border-4 border-slate-700" />
-                <div className="absolute inset-0 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin" />
+            <div className="flex flex-col items-center justify-center py-32 gap-5">
+              <div className="relative w-14 h-14">
+                <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+                <div className="absolute inset-0 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                <div className="absolute inset-2 rounded-full border border-cyan-400/30 border-b-transparent animate-spin"
+                     style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
               </div>
-              <p className="text-slate-500 text-sm animate-pulse">Cargando datos...</p>
+              <div className="text-center">
+                <p className="text-white/60 text-sm font-medium">Cargando datos</p>
+                <p className="text-white/25 text-xs mt-1">Conectando con Supabase...</p>
+              </div>
             </div>
           ) : (
             <div className="animate-fade-in">
