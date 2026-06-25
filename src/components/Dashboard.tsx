@@ -7,6 +7,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import type { DashboardStats, Config, Commissioner, ProductWithCalculated } from "../types";
 import { formatCurrency, formatPercent, calculateProjection } from "../utils/calculations";
+import { Toast, useToast } from "./Toast";
 
 interface DashboardProps {
   stats: DashboardStats;
@@ -78,22 +79,41 @@ export function Dashboard({
   );
 
   /* ── Estado del formulario de ajuste de saldo ── */
-  const [showAdjust, setShowAdjust] = useState(false);
-  const [adjustAmt, setAdjustAmt]   = useState("");
-  const [adjustType, setAdjustType] = useState<"gasto" | "ingreso">("gasto");
-  const [adjustDesc, setAdjustDesc] = useState("");
-  const [isSaving, setIsSaving]     = useState(false);
+  const [showAdjust, setShowAdjust]           = useState(false);
+  const [adjustAmt, setAdjustAmt]             = useState("");
+  const [adjustType, setAdjustType]           = useState<"gasto" | "ingreso">("gasto");
+  const [adjustDesc, setAdjustDesc]           = useState("");
+  const [isSaving, setIsSaving]               = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const { toast, showToast, dismissToast }    = useToast();
 
-  const handleAdjust = async () => {
+  /** Paso 1: el usuario presiona el botón → abrimos el modal de confirmación */
+  const requestAdjust = () => {
     const amt = parseFloat(adjustAmt);
     if (!amt || isNaN(amt) || amt <= 0) return;
+    setShowConfirmModal(true);
+  };
+
+  /** Paso 2: el usuario confirma en el modal → ejecutamos en Supabase */
+  const handleAdjust = async () => {
+    const amt = parseFloat(adjustAmt);
+    setShowConfirmModal(false);
     setIsSaving(true);
     const ok = await adjustBalance(adjustType === "gasto" ? -amt : amt);
     setIsSaving(false);
-    if (!ok) return;
-    setAdjustAmt("");
-    setAdjustDesc("");
-    setShowAdjust(false);
+    if (ok) {
+      showToast(
+        adjustType === "gasto"
+          ? `Gasto de ${formatCurrency(amt)} registrado`
+          : `Ingreso de ${formatCurrency(amt)} registrado`,
+        'success'
+      );
+      setAdjustAmt("");
+      setAdjustDesc("");
+      setShowAdjust(false);
+    } else {
+      showToast('Error al guardar el movimiento', 'error');
+    }
   };
 
   const cancelAdjust = () => {
@@ -517,7 +537,7 @@ export function Dashboard({
                   Cancelar
                 </button>
                 <button
-                  onClick={handleAdjust}
+                  onClick={requestAdjust}
                   disabled={!adjustAmt || parseFloat(adjustAmt) <= 0 || isSaving}
                   className={`flex items-center justify-center gap-2 flex-1 py-2.5 rounded-2xl
                               text-xs font-bold transition-all duration-200
@@ -659,6 +679,83 @@ export function Dashboard({
           </div>
         </div>
       </div>
+
+      {/* ══ Modal de Confirmación — Ajustar Saldo ══ */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border border-slate-700/60 shadow-2xl animate-slide-up">
+            {/* Icon */}
+            <div className={`w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center
+                             ${adjustType === 'gasto' ? 'bg-rose-500/15' : 'bg-teal-500/15'}`}>
+              {adjustType === 'gasto'
+                ? <MinusCircle className="w-6 h-6 text-rose-400" />
+                : <PlusCircle  className="w-6 h-6 text-teal-400" />
+              }
+            </div>
+
+            <h3 className="text-lg font-bold text-white text-center mb-1">
+              ¿Confirmar movimiento?
+            </h3>
+            <p className="text-slate-400 text-sm text-center mb-5">
+              Este cambio se guardará en la base de datos.
+            </p>
+
+            {/* Resumen */}
+            <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4 mb-5 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Tipo</span>
+                <span className={`font-semibold capitalize ${adjustType === 'gasto' ? 'text-rose-400' : 'text-teal-400'}`}>
+                  {adjustType === 'gasto' ? 'Gasto / Egreso' : 'Ingreso Extra'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Monto</span>
+                <span className="font-bold text-white">{formatCurrency(parseFloat(adjustAmt) || 0)}</span>
+              </div>
+              {adjustDesc.trim() && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Descripción</span>
+                  <span className="text-slate-300 text-right max-w-[60%]">{adjustDesc}</span>
+                </div>
+              )}
+              <div className="border-t border-slate-700/50 pt-2 flex justify-between text-sm">
+                <span className="text-slate-400">Saldo resultante</span>
+                <span className={`font-extrabold tabular-nums ${
+                  (balance + (adjustType === 'gasto' ? -(parseFloat(adjustAmt)||0) : (parseFloat(adjustAmt)||0))) >= 0
+                    ? 'text-teal-300' : 'text-rose-400'
+                }`}>
+                  {formatCurrency(balance + (adjustType === 'gasto' ? -(parseFloat(adjustAmt)||0) : (parseFloat(adjustAmt)||0)))}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 btn-secondary py-2.5 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAdjust}
+                className={`flex-1 py-2.5 rounded-xl font-semibold text-sm text-white
+                            transition-all duration-200 active:scale-95
+                            flex items-center justify-center gap-2
+                            ${adjustType === 'gasto'
+                              ? 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600'
+                              : 'bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600'
+                            }`}
+              >
+                <Check className="w-4 h-4" />
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Toast ══ */}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

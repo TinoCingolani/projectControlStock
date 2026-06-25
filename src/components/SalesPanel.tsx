@@ -6,6 +6,7 @@ import {
 import type { ProductWithCalculated, Commissioner, Sale, Config } from '../types';
 import { formatCurrency, isLowStock } from '../utils/calculations';
 import { AlertsPanel } from './AlertsPanel';
+import { Toast, useToast } from './Toast';
 
 interface SalesPanelProps {
   products: ProductWithCalculated[];
@@ -17,18 +18,20 @@ interface SalesPanelProps {
   updateProduct: (id: string, updates: Partial<ProductWithCalculated>) => Promise<boolean>;
 }
 
-type ModalState = 'form' | 'saving' | 'success';
+type ModalState = 'form' | 'saving';
 
 export function SalesPanel({ products, groupedProducts, commissioners, sales, config, addSale, updateProduct }: SalesPanelProps) {
-  const [showSaleModal, setShowSaleModal]     = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState('');
-  const [unitPriceInput, setUnitPriceInput]   = useState('');
-  const [saleQuantity, setSaleQuantity]       = useState('1');
-  const [saleType, setSaleType]               = useState<'direct' | 'commissioner'>('direct');
+  const [showSaleModal, setShowSaleModal]         = useState(false);
+  const [selectedProduct, setSelectedProduct]     = useState('');
+  const [unitPriceInput, setUnitPriceInput]       = useState('');
+  const [saleQuantity, setSaleQuantity]           = useState('1');
+  const [saleType, setSaleType]                   = useState<'direct' | 'commissioner'>('direct');
   const [selectedCommissioner, setSelectedCommissioner] = useState('');
-  const [customCommPct, setCustomCommPct]     = useState('');  // % comisión editable por venta
-  const [modalState, setModalState]           = useState<ModalState>('form');
-  const [searchQuery, setSearchQuery]         = useState('');
+  const [customCommPct, setCustomCommPct]         = useState('');  // % comisión editable por venta
+  const [modalState, setModalState]               = useState<ModalState>('form');
+  const [searchQuery, setSearchQuery]             = useState('');
+  const [showSaleConfirmModal, setShowSaleConfirmModal] = useState(false);
+  const { toast, showToast, dismissToast }        = useToast();
 
   /* ── Editar producto desde alerta ── */
   const [editingAlertProduct, setEditingAlertProduct] = useState<ProductWithCalculated | null>(null);
@@ -73,9 +76,16 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
       return p && p.name.toLowerCase() === productName.toLowerCase();
   });
 
-  /* ── Registrar venta ── */
+  /* ── Paso 1: usuario presiona "Confirmar Venta" → abre modal de confirmación ── */
+  const requestSale = () => {
+    if (!selectedProductObj || !config || !salePreview?.stockOk) return;
+    setShowSaleConfirmModal(true);
+  };
+
+  /* ── Paso 2: usuario confirma → ejecutamos en Supabase ── */
   const handleRegisterSale = async () => {
     if (!selectedProductObj || !config || !salePreview?.stockOk) return;
+    setShowSaleConfirmModal(false);
     setModalState('saving');
 
     const success1 = await addSale({
@@ -109,9 +119,10 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
     }
 
     if (success1 && success2) {
-      setModalState('success');
-      setTimeout(() => closeSaleModal(), 1400);
+      showToast(`Venta de ${qty} × ${selectedProductObj.name} registrada`, 'success');
+      closeSaleModal();
     } else {
+      showToast('Error al registrar la venta', 'error');
       setModalState('form');
     }
   };
@@ -348,31 +359,21 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
       {showSaleModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-2xl w-full max-w-md border border-slate-700/60 shadow-2xl animate-slide-up overflow-hidden">
-
-            {/* Success state */}
-            {modalState === 'success' ? (
-              <div className="flex flex-col items-center justify-center py-16 px-8 animate-success">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-9 h-9 text-emerald-400" />
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700/50">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-lg font-bold text-white">Registrar Venta</h3>
                 </div>
-                <p className="text-xl font-bold text-white mb-1">¡Venta registrada!</p>
-                <p className="text-slate-400 text-sm">El stock fue descontado automáticamente</p>
+                <button
+                  onClick={closeSaleModal}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-            ) : (
-              <>
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700/50">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-amber-400" />
-                    <h3 className="text-lg font-bold text-white">Registrar Venta</h3>
-                  </div>
-                  <button
-                    onClick={closeSaleModal}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+
 
                 <div className="p-6 space-y-5">
                   {/* Producto */}
@@ -603,7 +604,7 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
                     Cancelar
                   </button>
                   <button
-                    onClick={handleRegisterSale}
+                    onClick={requestSale}
                     disabled={
                       modalState === 'saving' ||
                       !selectedProduct ||
@@ -622,8 +623,72 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
                     )}
                   </button>
                 </div>
-              </>
-            )}
+            </>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Modal: Confirmar Venta ══ */}
+      {showSaleConfirmModal && salePreview && selectedProductObj && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border border-slate-700/60 shadow-2xl animate-slide-up">
+            {/* Icon */}
+            <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-amber-500/15">
+              <CheckCircle2 className="w-6 h-6 text-amber-400" />
+            </div>
+
+            <h3 className="text-lg font-bold text-white text-center mb-1">¿Confirmar venta?</h3>
+            <p className="text-slate-400 text-sm text-center mb-5">
+              Esta acción descontará el stock y quedará registrada.
+            </p>
+
+            {/* Resumen */}
+            <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4 mb-5 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Producto</span>
+                <span className="font-semibold text-white text-right max-w-[60%]">{selectedProductObj.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Cantidad</span>
+                <span className="font-semibold text-white">{qty} unidad{qty !== 1 ? 'es' : ''}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Precio unitario</span>
+                <span className="font-semibold text-white">{formatCurrency(salePreview.unitPrice)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Total venta</span>
+                <span className="font-bold text-white">{formatCurrency(salePreview.totalSale)}</span>
+              </div>
+              {salePreview.commission > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Comisión ({effectiveCommPct}%)</span>
+                  <span className="text-rose-400 font-medium">-{formatCurrency(salePreview.commission)}</span>
+                </div>
+              )}
+              <div className="border-t border-slate-700/50 pt-2 flex justify-between">
+                <span className="text-sm font-semibold text-white">Ganancia neta</span>
+                <span className={`text-base font-extrabold tabular-nums ${
+                  salePreview.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}>{formatCurrency(salePreview.netProfit)}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSaleConfirmModal(false)}
+                className="flex-1 btn-secondary py-2.5 rounded-xl"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleRegisterSale}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -691,6 +756,9 @@ export function SalesPanel({ products, groupedProducts, commissioners, sales, co
           </div>
         </div>
       )}
+
+      {/* ══ Toast ══ */}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

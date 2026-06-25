@@ -11,12 +11,15 @@ interface ProductsPanelProps {
   deleteProduct: (id: string) => Promise<boolean>;
 }
 
+type CostCurrency = 'USD' | 'ARS';
+
 export function ProductsPanel({ products, config, addProduct, updateProduct, deleteProduct }: ProductsPanelProps) {
   const [showModal, setShowModal]         = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductWithCalculated | null>(null);
   const [name, setName]                   = useState('');
   const [quantity, setQuantity]           = useState('');
-  const [costUsd, setCostUsd]             = useState('');
+  const [costInput, setCostInput]         = useState('');   // valor ingresado (USD o ARS según costCurrency)
+  const [costCurrency, setCostCurrency]   = useState<CostCurrency>('USD');
   const [priceArs, setPriceArs]           = useState('');
   const [saving, setSaving]               = useState(false);
   const [searchQuery, setSearchQuery]     = useState('');
@@ -28,13 +31,25 @@ export function ProductsPanel({ products, config, addProduct, updateProduct, del
     return products.filter(p => p.name.toLowerCase().includes(q));
   }, [products, searchQuery]);
 
+  /* ── Derivados del modal: cost_usd efectivo ── */
+  const derivedCostUsd = useMemo(() => {
+    const raw = parseFloat(costInput) || 0;
+    if (!raw || !config) return 0;
+    return costCurrency === 'USD' ? raw : raw / config.dolar_ars;
+  }, [costInput, costCurrency, config]);
+
+  const derivedCostArs = useMemo(() => {
+    if (!config) return 0;
+    return derivedCostUsd * config.dolar_ars;
+  }, [derivedCostUsd, config]);
+
   const handleSubmit = async () => {
-    if (!name.trim() || !quantity || !costUsd || !priceArs) return;
+    if (!name.trim() || !quantity || !costInput || !priceArs) return;
     setSaving(true);
     const productData = {
       name:          name.trim(),
       quantity:      parseInt(quantity) || 0,
-      cost_usd:      parseFloat(costUsd) || 0,
+      cost_usd:      derivedCostUsd,
       price_ars:     parseFloat(priceArs) || 0,
       stock_initial: parseInt(quantity) || 0,
     };
@@ -51,7 +66,8 @@ export function ProductsPanel({ products, config, addProduct, updateProduct, del
     setEditingProduct(product);
     setName(product.name);
     setQuantity(product.quantity.toString());
-    setCostUsd(product.cost_usd.toString());
+    setCostInput(product.cost_usd.toString());
+    setCostCurrency('USD');
     setPriceArs(product.price_ars.toString());
     setShowModal(true);
   };
@@ -66,16 +82,16 @@ export function ProductsPanel({ products, config, addProduct, updateProduct, del
     setEditingProduct(null);
     setName('');
     setQuantity('');
-    setCostUsd('');
+    setCostInput('');
+    setCostCurrency('USD');
     setPriceArs('');
   };
 
-  const previewMetrics = config ? {
-    costArs: (parseFloat(costUsd) || 0) * config.dolar_ars,
-    margin:  (parseFloat(priceArs) || 0) > 0
-      ? (((parseFloat(priceArs) || 0) - ((parseFloat(costUsd) || 0) * config.dolar_ars)) / (parseFloat(priceArs) || 1)) * 100
-      : 0,
-  } : null;
+  const previewMargin = config && derivedCostArs > 0
+    ? (parseFloat(priceArs) || 0) > 0
+      ? (((parseFloat(priceArs) || 0) - derivedCostArs) / (parseFloat(priceArs) || 1)) * 100
+      : 0
+    : null;
 
   return (
     <div className="card animate-fade-in">
@@ -318,17 +334,52 @@ export function ProductsPanel({ products, config, addProduct, updateProduct, del
                   placeholder="0"
                 />
               </div>
+
+              {/* ── Campo de costo con toggle de moneda ── */}
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium uppercase tracking-wide">Costo USD</label>
-                <input
-                  type="number"
-                  value={costUsd}
-                  onChange={e => setCostUsd(e.target.value)}
-                  className="input"
-                  step="0.01"
-                  placeholder="0.00"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs text-slate-400 font-medium uppercase tracking-wide">Costo</label>
+                  {/* Toggle USD / ARS */}
+                  <div className="flex items-center bg-slate-900/70 rounded-lg p-0.5 border border-slate-700/50">
+                    <button
+                      type="button"
+                      onClick={() => setCostCurrency('USD')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all duration-200 ${
+                        costCurrency === 'USD'
+                          ? 'bg-cyan-600 text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      USD
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCostCurrency('ARS')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all duration-200 ${
+                        costCurrency === 'ARS'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      ARS
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold pointer-events-none">
+                    {costCurrency === 'USD' ? 'U$D' : '$'}
+                  </span>
+                  <input
+                    type="number"
+                    value={costInput}
+                    onChange={e => setCostInput(e.target.value)}
+                    className="input pl-10"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
+
               <div className="col-span-2">
                 <label className="block text-xs text-slate-400 mb-1.5 font-medium uppercase tracking-wide">Precio de Venta ARS</label>
                 <input
@@ -342,24 +393,34 @@ export function ProductsPanel({ products, config, addProduct, updateProduct, del
               </div>
 
               {/* Preview live */}
-              {previewMetrics && (parseFloat(costUsd) > 0) && (
+              {config && derivedCostUsd > 0 && (
                 <div className="col-span-2 grid grid-cols-2 gap-3 animate-fade-in">
+                  {/* Costo en la moneda opuesta */}
                   <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-3">
-                    <p className="text-xs text-slate-500 mb-1">Costo ARS estimado</p>
-                    <p className="text-white font-semibold">{formatCurrency(previewMetrics.costArs)}</p>
+                    {costCurrency === 'USD' ? (
+                      <>
+                        <p className="text-xs text-slate-500 mb-1">Equivalente en ARS</p>
+                        <p className="text-white font-semibold">{formatCurrency(derivedCostArs)}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-500 mb-1">Equivalente en USD</p>
+                        <p className="text-white font-semibold">{formatCurrency(derivedCostUsd, 'USD')}</p>
+                      </>
+                    )}
                   </div>
-                  {config && (
+                  {previewMargin !== null && (
                     <div className={`rounded-xl p-3 border ${
-                      isMarginLow(previewMetrics.margin, config.margen_minimo)
+                      isMarginLow(previewMargin, config.margen_minimo)
                         ? 'bg-rose-900/20 border-rose-500/30'
                         : 'bg-slate-900/60 border-slate-700/40'
                     }`}>
                       <p className="text-xs text-slate-500 mb-1">Margen estimado</p>
                       <p className={`font-semibold ${
-                        isMarginLow(previewMetrics.margin, config.margen_minimo) ? 'text-rose-400' : 'text-cyan-400'
+                        isMarginLow(previewMargin, config.margen_minimo) ? 'text-rose-400' : 'text-cyan-400'
                       }`}>
-                        {formatPercent(previewMetrics.margin)}
-                        {isMarginLow(previewMetrics.margin, config.margen_minimo) && (
+                        {formatPercent(previewMargin)}
+                        {isMarginLow(previewMargin, config.margen_minimo) && (
                           <span className="text-xs ml-1 opacity-70">← bajo mínimo</span>
                         )}
                       </p>
@@ -378,7 +439,7 @@ export function ProductsPanel({ products, config, addProduct, updateProduct, del
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={saving || !name.trim() || !quantity || !costUsd || !priceArs}
+                disabled={saving || !name.trim() || !quantity || !costInput || !priceArs}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900/50 disabled:text-emerald-700 disabled:cursor-not-allowed text-white py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
               >
                 {saving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
